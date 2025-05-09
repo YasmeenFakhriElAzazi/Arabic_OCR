@@ -115,7 +115,7 @@ def preprocess_and_label(image, pad: int = 0, apply_blur: bool = True, apply_mor
     binary_img = binary_otsus(image, apply_blur=apply_blur, apply_morph=apply_morph)
 
     # Connected components
-    num_labels, labels = cv2.connectedComponents(binary_img)
+    num_labels, labels = cv.connectedComponents(binary_img)
     # Labels connected regions of non-zero pixels with unique integers.
     #Isolate individual characters or words:Each connected text region gets a unique label, helping in further processing like segmentation.
 

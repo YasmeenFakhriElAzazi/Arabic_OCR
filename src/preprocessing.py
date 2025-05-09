@@ -38,8 +38,6 @@ def binary_otsus(image: np.ndarray, apply_blur: bool = True, apply_morph: bool =
     return binary_img
 
 
-
-
 def find_score(arr, angle):
     data = inter.rotate(arr, angle, reshape=False, order=0)
     hist = np.sum(data, axis=1)
@@ -75,5 +73,50 @@ def deskew(binary_img):
     return pix
 
 
+def vexpand(gray_img, pad: int = 10, color: int = 255):
+    """Add vertical padding (top and bottom) to a grayscale image."""
+    h, w = gray_img.shape[:2] #Extracts the height (h) and width (w) of the input image
+    color = np.clip(color, 0, 255)  # Ensure color is within valid range -> This prevents accidental invalid values like 300 or -50.
+    pad_block = np.full((pad, w), fill_value=color, dtype=gray_img.dtype) 
+    #Creates a new 2D array (pad_block) of size (pad, w) — a strip of pixels as wide as the image and pad pixels tall.
+    # All pixels are set to the color value.
+    return np.vstack([pad_block, gray_img, pad_block]) #Vertically stacks the padding on top, then the image, then the padding on bottom.
 
 
+def hexpand(gray_img, pad: int = 10, color: int = 255):
+    """Add horizontal padding (left and right) to a grayscale image."""
+    h, w = gray_img.shape[:2]
+    color = np.clip(color, 0, 255)
+    pad_block = np.full((h, pad), fill_value=color, dtype=gray_img.dtype)
+    return np.hstack([pad_block, gray_img, pad_block]) #Horizontally stacks the padding on left, then the image, then the padding on right.
+
+
+def preprocess_and_label(image, pad: int = 0, apply_blur: bool = True, apply_morph: bool = False):
+    """
+    Optionally adds padding, applies Otsu binarization, and computes connected components.
+
+    Parameters:
+        image (np.ndarray): Input image (BGR or grayscale).
+        pad (int): Padding (in pixels) to add to all sides. Set to 0 to skip padding.
+        apply_blur (bool): Apply Gaussian blur before binarization.
+        apply_morph (bool): Apply morphological opening after binarization.
+
+    Returns:
+        num_labels (int): Number of connected components found.
+        labels (np.ndarray): Labeled image where each connected region has a unique ID.
+    """
+
+    # Apply padding if needed
+    if pad > 0:
+        gray_img = vexpand(gray_img, pad=pad)
+        gray_img = hexpand(gray_img, pad=pad)
+
+    # Binarize
+    binary_img = binary_otsus(image, apply_blur=apply_blur, apply_morph=apply_morph)
+
+    # Connected components
+    num_labels, labels = cv2.connectedComponents(binary_img)
+    # Labels connected regions of non-zero pixels with unique integers.
+    #Isolate individual characters or words:Each connected text region gets a unique label, helping in further processing like segmentation.
+
+    return num_labels, labels

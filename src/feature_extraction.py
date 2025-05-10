@@ -107,20 +107,19 @@ def removeMargins(img):
 
 # Function to extract words from an image using pytesseract and get features
 def extract_words_and_get_features(img, save=False, cut=3, padding=10, output_dir="output_segments"):
-    # Use pytesseract to extract words
-    text = pytesseract.image_to_string(img)
-    words = text.split()  # Split text into words
-    
+    # Use pytesseract to extract words with bounding boxes
+    boxes = pytesseract.image_to_boxes(img)
     data_list = []
     classes_list = []
     
     # For each word, extract its features
-    for word in words:
-        word_img = img  # Placeholder, replace with actual word segmentation logic
-        features = getFeatures(word_img)
-        
+    for b in boxes.splitlines():
+        b = b.split()
+        x, y, w, h = int(b[1]), int(b[2]), int(b[3]), int(b[4])  # word bounding box coordinates
+        word_img = img[y:h, x:w]  # Extract word image
+        features = getFeatures(word_img)  # Extract features
         data_list.append(features)
-        classes_list.append(word)  # Using the word as the class label (or other logic)
+        classes_list.append(b[0])  # Using the character as the class label (can be modified)
     
     return np.array(data_list), np.array(classes_list)
 
@@ -128,7 +127,7 @@ def extract_words_and_get_features(img, save=False, cut=3, padding=10, output_di
 def main():
     data = []
     classes = []
-    directory = "../LettersDataset"
+    directory = "C:/path/to/LettersDataset"  # Change this to the correct path
     
     chars = get_immediate_subdirectories(directory)
     count = 0
@@ -142,6 +141,10 @@ def main():
                 listOfFiles = getListOfFiles(directory + "/" + char + "/" + position)
                 for filename in listOfFiles:
                     img = cv.imread(filename)
+                    if img is None:
+                        print(f"Error reading image: {filename}")
+                        continue
+                    
                     cropped = removeMargins(img)
                     gray_img = cv.cvtColor(cropped, cv.COLOR_BGR2GRAY)
                     binary_img = cv.threshold(gray_img, 127, 255, cv.THRESH_BINARY)[1]  # Simple binary threshold
